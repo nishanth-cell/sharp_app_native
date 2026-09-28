@@ -82,16 +82,19 @@ export default function AppBottom() {
             </View>
 
             <AppText
-              size="xs"
-              weight={active ? "semibold" : "regular"}
-              color={
-                active
-                  ? theme.colors.primary
-                  : theme.colors.textSecondary
-              }
-            >
-              {item.label}
-            </AppText>
+  size="xs"
+  weight={active ? "semibold" : "regular"}
+  color={
+    active
+      ? theme.colors.primary
+      : theme.colors.textSecondary
+  }
+  numberOfLines={1}
+  //ellipsizeMode="tail"
+  style={styles.label}
+>
+  {item.label}
+</AppText>
           </Pressable>
         );
       })}
@@ -131,4 +134,8 @@ const styles = StyleSheet.create({
   activeIconContainer: {
     backgroundColor: theme.colors.secondary,
   },
+  label: {
+  width: "100%",
+  textAlign: "center",
+},
 });

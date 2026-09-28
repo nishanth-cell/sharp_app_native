@@ -26,12 +26,15 @@ import { changePasswordApi } from "../../services/authApi";
 
 import theme from "../../theme";
 
-export default function ResetPasswordScreen() {
+export default function ChangePasswordScreen() {
   const router = useRouter();
 
   const token = useAppSelector(
     (state) => state.auth.token
   );
+
+  const [currentPassword, setCurrentPassword] =
+    useState("");
 
   const [newPassword, setNewPassword] =
     useState("");
@@ -39,12 +42,21 @@ export default function ResetPasswordScreen() {
   const [confirmPassword, setConfirmPassword] =
     useState("");
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
 
-  const handleCreatePassword = async () => {
+  const handleChangePassword = async () => {
+    if (!currentPassword.trim()) {
+      Alert.alert(
+        "Change Password",
+        "Please enter your current password."
+      );
+      return;
+    }
+
     if (!newPassword.trim()) {
       Alert.alert(
-        "Create Password",
+        "Change Password",
         "Please enter your new password."
       );
       return;
@@ -52,15 +64,15 @@ export default function ResetPasswordScreen() {
 
     if (newPassword.length < 8) {
       Alert.alert(
-        "Create Password",
-        "Password must be at least 8 characters."
+        "Change Password",
+        "New password must be at least 8 characters."
       );
       return;
     }
 
     if (!confirmPassword.trim()) {
       Alert.alert(
-        "Create Password",
+        "Change Password",
         "Please confirm your new password."
       );
       return;
@@ -68,8 +80,16 @@ export default function ResetPasswordScreen() {
 
     if (newPassword !== confirmPassword) {
       Alert.alert(
-        "Create Password",
-        "Passwords do not match."
+        "Change Password",
+        "New passwords do not match."
+      );
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      Alert.alert(
+        "Change Password",
+        "New password must be different from your current password."
       );
       return;
     }
@@ -89,7 +109,7 @@ export default function ResetPasswordScreen() {
 
       const data = await changePasswordApi(
         token,
-        "",
+        currentPassword,
         newPassword
       );
 
@@ -100,16 +120,16 @@ export default function ResetPasswordScreen() {
 
       if (!data.ok) {
         Alert.alert(
-          "Password Update Failed",
+          "Change Password Failed",
           data.message ||
-            "Unable to update your password."
+            "Unable to change your password."
         );
         return;
       }
 
       Alert.alert(
-        "Password Updated",
-        "Your password has been created successfully.",
+        "Password Changed",
+        "Your password has been changed successfully.",
         [
           {
             text: "Continue",
@@ -126,10 +146,10 @@ export default function ResetPasswordScreen() {
       );
 
       Alert.alert(
-        "Password Update Failed",
+        "Change Password Failed",
         error?.response?.data?.message ||
           error?.message ||
-          "Unable to update your password."
+          "Unable to change your password."
       );
     } finally {
       setLoading(false);
@@ -139,7 +159,7 @@ export default function ResetPasswordScreen() {
   return (
     <Screen keyboardAvoiding>
       <AppHeader
-        title="Create Password"
+        title="Change Password"
         onBack={() => router.back()}
       />
 
@@ -150,7 +170,7 @@ export default function ResetPasswordScreen() {
         <Container style={styles.container}>
           <Column gap="lg">
 
-            {/* Header Information */}
+            {/* Header */}
             <AppCard style={styles.introCard}>
               <View style={styles.introContent}>
                 <View style={styles.iconContainer}>
@@ -166,7 +186,7 @@ export default function ResetPasswordScreen() {
                     size="xl"
                     weight="bold"
                   >
-                    Create Your Password
+                    Change Your Password
                   </AppText>
 
                   <Spacer size="xs" />
@@ -177,27 +197,40 @@ export default function ResetPasswordScreen() {
                       theme.colors.textSecondary
                     }
                   >
-                    Your administrator or OB has
-                    provided you with a temporary
-                    password. Please create your own
-                    password before you continue.
+                    Update your account password
+                    securely. Enter your current
+                    password and choose a new one.
                   </AppText>
                 </View>
               </View>
             </AppCard>
 
-            {/* Password Section */}
+            {/* Password Form */}
             <Column gap="sm">
               <AppText
                 size="lg"
                 weight="bold"
               >
-                Set New Password
+                Password Details
               </AppText>
 
               <AppCard>
                 <Column gap="md">
 
+                  {/* Current Password */}
+                  <AppInput
+                    label="Current Password"
+                    placeholder="Enter current password"
+                    value={currentPassword}
+                    onChangeText={
+                      setCurrentPassword
+                    }
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+
+                  {/* New Password */}
                   <AppInput
                     label="New Password"
                     placeholder="Enter new password"
@@ -229,6 +262,7 @@ export default function ResetPasswordScreen() {
                     </AppText>
                   </View>
 
+                  {/* Confirm Password */}
                   <AppInput
                     label="Confirm New Password"
                     placeholder="Re-enter new password"
@@ -244,9 +278,9 @@ export default function ResetPasswordScreen() {
                   <Spacer size="sm" />
 
                   <AppButton
-                    title="Create Password"
+                    title="Save New Password"
                     onPress={
-                      handleCreatePassword
+                      handleChangePassword
                     }
                     loading={loading}
                   />

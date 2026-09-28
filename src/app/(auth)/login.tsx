@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -105,6 +107,12 @@ export default function LoginScreen() {
       attendanceData
     );
 
+    // Force password change
+if (data.user.must_change_password === true) {
+  router.replace("/(auth)/reset-password");
+  return;
+}
+
     if (attendanceData.ok) {
       dispatch(
         setAttendance({
@@ -132,7 +140,7 @@ export default function LoginScreen() {
       )
     );
   }
-        router.replace("/home");
+        router.replace("/(app)/home");
       }
     } catch (error: any) {
       console.log(
@@ -151,11 +159,17 @@ export default function LoginScreen() {
     }
   };
 
-  return (
-    <Screen keyboardAvoiding>
-      <Container
-        style={styles.container}
-      >
+ return (
+  <Screen>
+    <KeyboardAvoidingView
+      style={styles.keyboardContainer}
+      behavior={
+        Platform.OS === "ios"
+          ? "padding"
+          : "height"
+      }
+    >
+      <Container style={styles.container}>
         <Column
           gap="lg"
           style={styles.content}
@@ -182,7 +196,7 @@ export default function LoginScreen() {
             </AppText>
           </Column>
 
-          <Spacer size="lg" />
+          {/* <Spacer size="lg" /> */}
 
           <Column gap="md">
             <AppText
@@ -211,29 +225,26 @@ export default function LoginScreen() {
               autoCorrect={false}
             />
 
-            <Spacer size="sm" />
-
+          {/* <Spacer size="sm" />
+ */}
             <AppButton
               title="Sign In"
               onPress={handleLogin}
               loading={loading}
             />
-
-            {/* <AppButton
-              title="Forgot Password?"
-              variant="outline"
-              onPress={() =>
-                router.push("/reset-password")
-              }
-            /> */}
           </Column>
         </Column>
       </Container>
-    </Screen>
-  );
+    </KeyboardAvoidingView>
+  </Screen>
+);
 }
 
 const styles = StyleSheet.create({
+    keyboardContainer: {
+    flex: 1,
+  },
+
   container: {
     flex: 1,
     justifyContent: "center",
@@ -242,4 +253,6 @@ const styles = StyleSheet.create({
   content: {
     width: "100%",
   },
+ 
+
 });

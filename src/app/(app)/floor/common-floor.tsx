@@ -1,7 +1,14 @@
-import React, { useEffect } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import {
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
   StyleSheet,
   View,
 } from "react-native";
@@ -13,6 +20,8 @@ import AppHeader from "../../../components/AppHeader";
 import AppAvatar from "../../../components/AppAvatar";
 import AppCard from "../../../components/AppCard";
 import AppText from "../../../components/AppText";
+import AppInput from "../../../components/AppInput";
+import AppIcon from "../../../components/AppIcon";
 import AppBottom from "../../../components/AppBottom";
 
 import {
@@ -26,7 +35,10 @@ import {
   setCommonFloorLoading,
 } from "../../../redux/slices/commonFloorSlice";
 
-import { getCommonFloorApi } from "../../../services/commonFloorApi";
+import {
+  getCommonFloorApi,
+  sendCommonFloorApi,
+} from "../../../services/commonFloorApi";
 
 import theme from "../../../theme";
 
@@ -45,6 +57,22 @@ export default function CommonFloorScreen() {
     (state) => state.commonFloor.loading
   );
 
+ const [message, setMessage] = useState("");
+
+const flatListRef = useRef<FlatList>(null);
+
+useEffect(() => {
+  if (!messages.length) return;
+
+  const timer = setTimeout(() => {
+    flatListRef.current?.scrollToEnd({
+      animated: false,
+    });
+  }, 150);
+
+  return () => clearTimeout(timer);
+}, [messages]);
+
   useEffect(() => {
     loadMessages();
   }, [token]);
@@ -55,13 +83,10 @@ export default function CommonFloorScreen() {
     try {
       dispatch(setCommonFloorLoading(true));
 
-      const data =
-        await getCommonFloorApi(token);
+      const data = await getCommonFloorApi(token);
 
       if (data.ok) {
-        dispatch(
-          setCommonFloor(data.messages)
-        );
+        dispatch(setCommonFloor(data.messages));
       } else {
         dispatch(
           setCommonFloorError(
@@ -83,6 +108,38 @@ export default function CommonFloorScreen() {
     }
   };
 
+const handleSendMessage = async () => {
+  const trimmedMessage = message.trim();
+
+  if (!trimmedMessage || !token) {
+    return;
+  }
+
+  try {
+    const data = await sendCommonFloorApi(
+      token,
+      trimmedMessage
+    );
+
+    console.log(
+      "SEND MESSAGE RESPONSE:",
+      data
+    );
+
+    if (data.ok) {
+      setMessage("");
+
+      // Reload messages so the new message appears
+      await loadMessages();
+    }
+  } catch (error: any) {
+    console.log(
+      "SEND MESSAGE ERROR:",
+      error?.response?.data || error
+    );
+  }
+};
+
   return (
     <Screen>
       <AppHeader
@@ -90,34 +147,68 @@ export default function CommonFloorScreen() {
         subtitle="Shared programme space"
       />
 
-      <Container style={styles.container}>
-        <FlatList
-          data={messages}
-          keyExtractor={(item) =>
-            item.id.toString()
-          }
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={
-            styles.listContent
-          }
-          ListEmptyComponent={
-            !loading ? (
-              <AppText
-                size="sm"
-                color={
-                  theme.colors.textSecondary
-                }
-                align="center"
-              >
-                {"No messages found."}
-              </AppText>
-            ) : null
-          }
-          renderItem={({ item }) => (
-            <MessageCard message={item} />
-          )}
+      <KeyboardAvoidingView
+  style={styles.keyboardContainer}
+  behavior={
+    Platform.OS === "ios"
+      ? "padding"
+      : "height"
+  }
+>
+  <Container style={styles.container}>
+    <FlatList
+      ref={flatListRef}
+      data={messages}
+      keyExtractor={(item) =>
+        item.id.toString()
+      }
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={
+        styles.listContent
+      }
+      style={styles.messageList}
+      renderItem={({ item }) => (
+        <MessageCard message={item} />
+      )}
+    />
+
+    <View style={styles.inputBar}>
+      <View style={styles.inputWrapper}>
+        <AppInput
+          value={message}
+          onChangeText={setMessage}
+          placeholder="Write a message..."
+          multiline
+          style={styles.input}
+          onFocus={() => {
+            setTimeout(() => {
+              flatListRef.current?.scrollToEnd({
+                animated: true,
+              });
+            }, 250);
+          }}
         />
-      </Container>
+      </View>
+
+      <Pressable
+        onPress={handleSendMessage}
+        disabled={!message.trim()}
+        style={[
+          styles.sendButton,
+          !message.trim() &&
+            styles.sendButtonDisabled,
+        ]}
+      >
+        <AppIcon
+          name="send"
+          size={20}
+          color={theme.colors.surface}
+        />
+      </Pressable>
+    </View>
+  </Container>
+</KeyboardAvoidingView>
 
       <AppBottom />
     </Screen>
@@ -126,6 +217,7 @@ export default function CommonFloorScreen() {
 
 type MessageCardProps = {
   message: {
+    id: number;
     message: string;
     author_name: string;
     author_role: string;
@@ -209,13 +301,21 @@ function formatDate(date: string) {
 }
 
 const styles = StyleSheet.create({
+  keyboardContainer: {
+    flex: 1,
+  },
+
   container: {
     flex: 1,
-    paddingTop: theme.spacing.md,
+  },
+
+  messageList: {
+    flex: 1,
   },
 
   listContent: {
-    paddingBottom: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing.md,
     gap: theme.spacing.md,
   },
 
@@ -237,5 +337,44 @@ const styles = StyleSheet.create({
   message: {
     marginTop: theme.spacing.md,
     lineHeight: 22,
+  },
+
+  inputBar: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+
+    gap: theme.spacing.sm,
+
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.sm,
+
+    backgroundColor: theme.colors.surface,
+
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+  },
+
+  inputWrapper: {
+    flex: 1,
+  },
+
+  input: {
+    minHeight: 44,
+    maxHeight: 110,
+  },
+
+  sendButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+
+    alignItems: "center",
+    justifyContent: "center",
+
+    backgroundColor: theme.colors.primary,
+  },
+
+  sendButtonDisabled: {
+    opacity: 0.45,
   },
 });

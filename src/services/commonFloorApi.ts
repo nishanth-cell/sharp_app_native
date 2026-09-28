@@ -59,3 +59,24 @@ export const getCommonFloorApi = async (
     throw error;
   }
 };
+
+
+export const sendCommonFloorApi = async (
+  token: string,
+  message: string
+) => {
+  const response = await api.post(
+    "/commonfloor.php",
+    {
+      message,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  return response.data;
+};

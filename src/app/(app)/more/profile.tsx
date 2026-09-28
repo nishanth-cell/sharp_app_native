@@ -249,7 +249,7 @@ export default function ProfileScreen() {
           {/* Change Password */}
           <Pressable
             onPress={() =>
-             router.push("/reset-password")
+             router.push("/(auth)/change-password")
             }
           >
             <AppCard>
